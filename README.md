@@ -1,2 +1,2 @@
 # MeNow-smell_pred
-Predicting smell from SMILES
+From SMILES to smell
