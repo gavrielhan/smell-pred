@@ -2,6 +2,7 @@
 """
 FART Fine-tuning for Multi-Label Odor Classification
 
+
 Adapts the Flavor Analysis and Recognition Transformer (FART) model 
 for predicting multiple odor labels: sweet, floral, minty, pungent.
 
