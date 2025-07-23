@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-FART Odor Prediction Script
+ChemBERTa Odor Prediction Script
 
-Uses the fine-tuned FART model to predict odor labels for new molecules.
+Uses the fine-tuned ChemBERTa model to predict odor labels for new molecules.
 Supports both single molecule predictions and batch predictions from CSV files.
+
+Inspired by FART (Flavor Analysis and Recognition Transformer) approach.
 """
 
 import pandas as pd
@@ -20,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OdorPredictor:
-    """Wrapper class for making odor predictions with fine-tuned FART model"""
+    """Wrapper class for making odor predictions with fine-tuned ChemBERTa model"""
     
     def __init__(self, model_path: str, device: str = None):
         """
@@ -226,7 +228,7 @@ class OdorPredictor:
         return df
 
 def main():
-    parser = argparse.ArgumentParser(description="Predict odor labels using fine-tuned FART model")
+    parser = argparse.ArgumentParser(description="Predict odor labels using fine-tuned ChemBERTa model")
     parser.add_argument("--model_path", type=str, required=True, 
                        help="Path to the fine-tuned model directory")
     parser.add_argument("--input", type=str, 
