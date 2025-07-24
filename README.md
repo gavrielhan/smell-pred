@@ -289,8 +289,8 @@ python chemberta_odor_predict.py \
 
 ## 💡 **Key Insights**
 
+- **Traditional ML** provides faster training and better performance in most metrics, with added interpretability
 - **ChemBERTa excels** at capturing complex molecular patterns
-- **Traditional ML** provides faster training and interpretability
 - **Multi-label prediction** is challenging due to label imbalance
 - **Class weights** are crucial for minority classes (mint, pungent)
 
