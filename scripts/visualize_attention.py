@@ -7,12 +7,16 @@ from rdkit.Chem import Draw
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from rdkit.Chem.Draw import rdMolDraw2D
+from PIL import Image
+import io
+import matplotlib.patches as patches
 
 # --- CONFIG ---
 MODEL_DIR = "chemberta_lora_results/final_model"
 CSV_PATH = "data/bushdid_predict.csv"
 N_EXAMPLES = 2
-TOP_N_ATOMS = 3
+TOP_N_ATOMS = 2
 LABELS = ['sweet', 'floral', 'minty', 'pungent']
 
 # --- LOAD MODEL & TOKENIZER ---
@@ -29,7 +33,11 @@ model.eval()
 
 # --- LOAD MOLECULES ---
 df = pd.read_csv(CSV_PATH)
-examples = df.iloc[:N_EXAMPLES]
+# Use the first molecule and the longest molecule (index 126)
+examples = pd.concat([
+    df.iloc[[0]],  # first molecule
+    df.iloc[[126]] # longest molecule
+], ignore_index=True)
 
 # --- ATTENTION VISUALIZATION ---
 def get_token_attention(smiles):
@@ -90,24 +98,58 @@ def map_token_importance_to_atoms(smiles, token_importance, inputs):
         atom_scores.append(score)
     return mol, atom_scores
 
-# --- DRAW MOLECULE WITH HIGHLIGHTED ATOMS ---
-def draw_molecule_with_attention(mol, atom_scores, smiles, top_n=3, ax=None):
-    if mol is None or atom_scores is None:
-        print(f"Could not parse molecule: {smiles}")
-        return
-    # Get top N atom indices
-    top_atoms = np.argsort(atom_scores)[-top_n:]
-    # Normalize scores for color intensity
-    max_score = max(atom_scores) if max(atom_scores) > 0 else 1
-    colors = {idx: (1, 0, 0) for idx in top_atoms}  # Red for top atoms
-    # Draw molecule
-    img = Draw.MolToImage(mol, size=(300, 300), highlightAtoms=top_atoms.tolist(), highlightAtomColors=colors)
-    if ax is not None:
-        ax.imshow(img)
-        ax.axis('off')
-        ax.set_title(smiles)
+# Helper: Draw a colored Gaussian halo at (x, y)
+def draw_gaussian_halo(ax, x, y, color, magnitude, radius=40, alpha_max=0.5):
+    # Create a 2D Gaussian as an image
+    size = radius * 2
+    grid = np.linspace(-radius, radius, size)
+    X, Y = np.meshgrid(grid, grid)
+    sigma = radius / 2.5
+    Z = np.exp(-(X**2 + Y**2) / (2 * sigma**2))
+    Z = Z / Z.max()  # Normalize
+    # Color and alpha scaling
+    if color == 'green':
+        rgba = np.zeros((size, size, 4))
+        rgba[..., 1] = 1.0  # Green channel
     else:
-        img.show()
+        rgba = np.zeros((size, size, 4))
+        rgba[..., 0] = 1.0  # Red channel
+    # Alpha: scale by magnitude and Z
+    rgba[..., 3] = alpha_max * abs(magnitude) * Z
+    # Overlay on ax
+    ax.imshow(rgba, extent=(x-radius, x+radius, y-radius, y+radius), origin='lower')
+
+# --- DRAW MOLECULE WITH GAUSSIAN HALOS (TOP 2 ONLY, BW IMAGE) ---
+def draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=None, img_size=(300, 300), top_n=2):
+    # Draw molecule in black and white
+    drawer = rdMolDraw2D.MolDraw2DCairo(img_size[0], img_size[1])
+    options = drawer.drawOptions()
+    options.useBWAtomPalette()
+    drawer.DrawMolecule(mol)
+    drawer.FinishDrawing()
+    img_bytes = drawer.GetDrawingText()
+    img = Image.open(io.BytesIO(img_bytes))
+    # Get atom pixel coordinates
+    atom_coords = [drawer.GetDrawCoords(i) for i in range(mol.GetNumAtoms())]
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(img_size[0]/100, img_size[1]/100), dpi=100)
+    ax.imshow(img)
+    ax.set_xlim(0, img.size[0])
+    ax.set_ylim(img.size[1], 0)
+    ax.axis('off')
+    # Only plot top_n atoms by |importance|
+    if not atom_scores or len(atom_scores) == 0:
+        return
+    top_indices = np.argsort(np.abs(atom_scores))[-top_n:]
+    max_score = max(abs(x) for x in atom_scores) if atom_scores else 1
+    for i in top_indices:
+        x, y = atom_coords[i]
+        score = atom_scores[i]
+        color = 'green' if score >= 0 else 'red'
+        # Normalize magnitude for alpha
+        magnitude = abs(score) / max_score if max_score > 0 else 0.5
+        draw_gaussian_halo(ax, x, y, color, magnitude)
+    ax.set_title(smiles)
 
 # --- MAIN VISUALIZATION ---
 fig, axes = plt.subplots(1, N_EXAMPLES, figsize=(5*N_EXAMPLES, 5))
@@ -118,17 +160,16 @@ for i, (idx, row) in enumerate(examples.iterrows()):
     print(f"Processing molecule: {smiles}")
     token_importance, inputs = get_token_attention(smiles)
     mol, atom_scores = map_token_importance_to_atoms(smiles, token_importance, inputs)
-    draw_molecule_with_attention(mol, atom_scores, smiles, top_n=TOP_N_ATOMS, ax=axes[i])
-plt.suptitle("Attention Visualization: Top 2-3 Atoms Highlighted (Red Halo)", fontsize=16)
+    # Predict odors
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits.cpu().numpy()[0]
+        probs = 1 / (1 + np.exp(-logits))
+        pred_labels = [LABELS[j] for j, p in enumerate(probs) if p > 0.5]
+        pred_label_str = ', '.join(pred_labels) if pred_labels else 'None'
+    draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=axes[i], top_n=TOP_N_ATOMS)
+    # Add predicted label(s) above the molecule
+    axes[i].set_title(f"Predicted: {pred_label_str}\n{smiles}", fontsize=12)
+plt.suptitle("Attention Visualization: Top 2 Gaussian Halos (Green=Support, Red=Oppose)", fontsize=16)
 plt.tight_layout()
 plt.show()
-
-# --- ROC-AUC EXPLANATION ---
-print("\n--- ROC-AUC for 'sweet' class (most prevalent) is lowest: Why? ---")
-print("""
-1. ROC-AUC measures the model's ability to rank positives above negatives. If a class is very common, the model may predict high probabilities for most samples, making it hard to distinguish true positives from false positives.
-2. The model may learn to always predict 'sweet', reducing its discrimination power (high recall, low precision).
-3. Imbalanced classes can lead to poor ROC-AUC for the majority class, especially if the negatives are rare and hard to separate.
-4. Label noise or ambiguity in 'sweet' can also lower ROC-AUC.
-5. In multi-label settings, co-occurrence with other labels can confuse the model for the most common class.
-""") 
