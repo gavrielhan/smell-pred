@@ -329,11 +329,12 @@ conda activate scent-env
 
 ## 📚 **References**
 
-- **ChemBERTa**: [Chithrananda et al., 2020](https://arxiv.org/abs/2010.09885)
-- **LoRA**: [Hu et al., 2021](https://arxiv.org/abs/2106.09685) 
-- **Pyrfume**: [Sanchez-Lengeling et al., 2019](https://arxiv.org/abs/1910.10685)
+- **FART**: [Zimmermann et al., (2025)](https://chemrxiv.org/engage/chemrxiv/article-details/6756f9777be152b1d06b2175)
+- **ChemBERTa**: [Chithrananda et al., (2020)](https://arxiv.org/abs/2010.09885)
+- **LoRA**: [Hu et al., (2021)](https://arxiv.org/abs/2106.09685) 
+- **Pyrfume**: [Sanchez-Lengeling et al., (2019)](https://arxiv.org/abs/1910.10685)
 - **RDKit**: [Landrum, G. (2006)](https://www.rdkit.org/)
-- **FART**: [Zimmermann et al. (2025)](https://chemrxiv.org/engage/chemrxiv/article-details/6756f9777be152b1d06b2175)
+
 
 ---
 
