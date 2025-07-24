@@ -117,7 +117,7 @@ class OdorChemBERTaConfig:
     # Training configuration - Optimized for LoRA + MacBook Air M2 8GB
     OUTPUT_DIR = "./chemberta_lora_results"
     LOGGING_DIR = "./chemberta_lora_logs"
-    NUM_EPOCHS = 20  # Extended training for better convergence
+    NUM_EPOCHS = 50  # Extended training for better convergence
     BATCH_SIZE = 16  # Can use larger batch size with LoRA
     LEARNING_RATE = 5e-4  # Reduced LR to prevent overfitting over 20 epochs
     WEIGHT_DECAY = 0.01
@@ -132,10 +132,10 @@ class OdorChemBERTaConfig:
     RANDOM_SEED = 42  # For reproducible results
 
 class TrainingHistoryCallback(TrainerCallback):
-    """Custom callback to track training history properly"""
-    
+    """Custom callback to track training history at every log step"""
     def __init__(self):
         self.training_history = {
+            'step': [],
             'epoch': [],
             'train_loss': [],
             'eval_loss': [],
@@ -143,45 +143,26 @@ class TrainingHistoryCallback(TrainerCallback):
             'eval_f1_micro': [],
             'learning_rate': []
         }
-    
-    def on_epoch_end(self, args, state, control, model=None, logs=None, **kwargs):
-        """Capture metrics at the end of each epoch"""
-        if logs:
-            # Get current epoch
-            current_epoch = state.epoch
-            
-            # Store training loss (average of the epoch)
-            if hasattr(state, 'log_history') and state.log_history:
-                # Get training losses from this epoch
-                epoch_train_losses = []
-                epoch_lrs = []
-                
-                for log_entry in state.log_history:
-                    if 'train_loss' in log_entry and log_entry.get('epoch', 0) >= current_epoch - 1:
-                        epoch_train_losses.append(log_entry['train_loss'])
-                    if 'learning_rate' in log_entry and log_entry.get('epoch', 0) >= current_epoch - 1:
-                        epoch_lrs.append(log_entry['learning_rate'])
-                
-                # Store epoch metrics
-                self.training_history['epoch'].append(current_epoch)
-                
-                if epoch_train_losses:
-                    self.training_history['train_loss'].append(np.mean(epoch_train_losses[-10:]))  # Average last 10
-                else:
-                    self.training_history['train_loss'].append(None)
-                    
-                if epoch_lrs:
-                    self.training_history['learning_rate'].append(epoch_lrs[-1])
-                else:
-                    self.training_history['learning_rate'].append(None)
-            
-            # Store evaluation metrics
-            self.training_history['eval_loss'].append(logs.get('eval_loss', None))
-            self.training_history['eval_f1_macro'].append(logs.get('eval_f1_macro', None))
-            self.training_history['eval_f1_micro'].append(logs.get('eval_f1_micro', None))
-    
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        # Only log if step is present (i.e., not just at init)
+        if logs is None or 'step' not in logs:
+            return
+        step = logs.get('step')
+        epoch = logs.get('epoch', None)
+        train_loss = logs.get('loss', None)
+        eval_loss = logs.get('eval_loss', None)
+        eval_f1_macro = logs.get('eval_f1_macro', None)
+        eval_f1_micro = logs.get('eval_f1_micro', None)
+        lr = logs.get('learning_rate', None)
+        self.training_history['step'].append(step)
+        self.training_history['epoch'].append(epoch)
+        self.training_history['train_loss'].append(train_loss)
+        self.training_history['eval_loss'].append(eval_loss)
+        self.training_history['eval_f1_macro'].append(eval_f1_macro)
+        self.training_history['eval_f1_micro'].append(eval_f1_micro)
+        self.training_history['learning_rate'].append(lr)
+        print(f"[DEBUG] step: {step}, epoch: {epoch}, train_loss: {train_loss}, eval_loss: {eval_loss}, eval_f1_macro: {eval_f1_macro}, eval_f1_micro: {eval_f1_micro}, lr: {lr}")
     def get_history(self):
-        """Return the training history"""
         return self.training_history
 
 class MultiLabelOdorTrainer(Trainer):
