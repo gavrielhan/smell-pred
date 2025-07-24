@@ -160,7 +160,7 @@ class MLOdorConfig:
     """Configuration for ML odor classification pipeline"""
     
     # Model configuration
-    LABEL_NAMES = ['sweet', 'floral', 'minty', 'pungent']
+    LABEL_NAMES = ['sweet', 'floral', 'mint', 'pungent']
     MODELS = ['lightgbm', 'xgboost']  # Available models
     
     # Feature extraction
@@ -204,8 +204,8 @@ class MLOdorConfig:
     }
     
     # Data files
-    TRAIN_FILE = "data/goodscents_train.csv"
-    TEST_FILE = "data/goodscents_test.csv"
+    TRAIN_FILE = "data/pyrfume_train_4odors.csv"
+    TEST_FILE = "data/pyrfume_test_4odors.csv"
     PREDICT_FILE = "data/bushdid_predict.csv"
 
 def extract_molecular_features(smiles_list: List[str], config: MLOdorConfig) -> np.ndarray:
@@ -698,7 +698,7 @@ def run_ml_pipeline(config: MLOdorConfig, models_to_run: List[str], use_gpu: boo
     print_step("Feature extraction pipeline")
     
     # Combine train and test for feature extraction
-    all_smiles = list(train_df['IsomericSMILES']) + list(test_df['IsomericSMILES'])
+    all_smiles = list(train_df['SMILES']) + list(test_df['SMILES'])
     all_features, valid_indices = extract_molecular_features(all_smiles, config)
     
     if len(all_features) == 0:

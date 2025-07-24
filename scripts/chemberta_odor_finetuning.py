@@ -38,6 +38,8 @@ import logging
 import time
 from datetime import datetime
 import random
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.multiclass import OneVsRestClassifier
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -729,6 +731,137 @@ def setup_model_and_tokenizer(config: OdorChemBERTaConfig) -> Tuple:
     
     return model, tokenizer
 
+# --- EMBEDDING EXTRACTION AND KNN BASELINE ---
+def extract_embeddings(model, tokenizer, df, config):
+    model.eval()
+    device = next(model.parameters()).device
+    smiles_list = df['SMILES'].tolist()
+    embeddings = []
+    with torch.no_grad():
+        for smiles in smiles_list:
+            inputs = tokenizer(smiles, return_tensors='pt', padding='max_length', truncation=True, max_length=config.MAX_LENGTH)
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+            outputs = model.base_model(**inputs, output_hidden_states=True)
+            # Use [CLS] token embedding from last hidden state
+            cls_emb = outputs.hidden_states[-1][0,0,:].cpu().numpy()
+            embeddings.append(cls_emb)
+    return np.stack(embeddings)
+
+def run_knn_baseline(train_emb, train_labels, test_emb, test_labels, label_names, output_dir, prefix="baseline_knn"):
+    # Multi-label kNN (One-vs-Rest)
+    knn = OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5))
+    knn.fit(train_emb, train_labels)
+    y_proba = knn.predict_proba(test_emb)
+    y_pred = (y_proba > 0.5).astype(int)
+    # Metrics
+    results = {}
+    for i, label in enumerate(label_names):
+        y_true = test_labels[:, i]
+        y_p = y_pred[:, i]
+        y_pb = y_proba[:, i]
+        if y_true.sum() > 0:
+            try:
+                auc = roc_auc_score(y_true, y_pb)
+                pr_auc = average_precision_score(y_true, y_pb)
+            except Exception:
+                auc = 0.0
+                pr_auc = 0.0
+            precision, recall, f1, _ = precision_recall_fscore_support(y_true, y_p, average='binary', zero_division=0)
+            results[f'{label}_auc'] = auc
+            results[f'{label}_pr_auc'] = pr_auc
+            results[f'{label}_f1'] = f1
+    # Micro/macro
+    precision_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(test_labels.flatten(), y_pred.flatten(), average='micro', zero_division=0)
+    precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(test_labels, y_pred, average='macro', zero_division=0)
+    results['f1_micro'] = f1_micro
+    results['f1_macro'] = f1_macro
+    # Plots
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    os.makedirs(os.path.join(output_dir, "plots"), exist_ok=True)
+    colors = sns.color_palette("husl", len(label_names))
+    # ROC
+    plt.figure(figsize=(12,8))
+    for i, (label, color) in enumerate(zip(label_names, colors)):
+        if len(np.unique(test_labels[:, i])) > 1:
+            fpr, tpr, _ = roc_curve(test_labels[:, i], y_proba[:, i])
+            auc_score = roc_auc_score(test_labels[:, i], y_proba[:, i])
+            plt.plot(fpr, tpr, color=color, linewidth=2, label=f'{label.upper()} (AUC={auc_score:.3f})')
+    plt.plot([0,1],[0,1],'k--',alpha=0.5)
+    plt.xlabel('FPR'); plt.ylabel('TPR'); plt.title('kNN ROC Curves'); plt.legend(); plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "plots", f"{prefix}_roc.png"), dpi=300)
+    plt.close()
+    # PR
+    plt.figure(figsize=(12,8))
+    for i, (label, color) in enumerate(zip(label_names, colors)):
+        if len(np.unique(test_labels[:, i])) > 1:
+            precision, recall, _ = precision_recall_curve(test_labels[:, i], y_proba[:, i])
+            pr_auc = average_precision_score(test_labels[:, i], y_proba[:, i])
+            plt.plot(recall, precision, color=color, linewidth=2, label=f'{label.upper()} (PR-AUC={pr_auc:.3f})')
+    plt.xlabel('Recall'); plt.ylabel('Precision'); plt.title('kNN PR Curves'); plt.legend(); plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "plots", f"{prefix}_pr.png"), dpi=300)
+    plt.close()
+    # Summary
+    plt.figure(figsize=(8,6))
+    aucs = [results.get(f'{l}_auc',0) for l in label_names]
+    pr_aucs = [results.get(f'{l}_pr_auc',0) for l in label_names]
+    x = np.arange(len(label_names))
+    width=0.35
+    plt.bar(x-width/2, aucs, width, label='ROC-AUC')
+    plt.bar(x+width/2, pr_aucs, width, label='PR-AUC')
+    plt.xticks(x, label_names)
+    plt.ylim(0,1)
+    plt.legend(); plt.title('kNN Baseline Performance'); plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "plots", f"{prefix}_summary.png"), dpi=300)
+    plt.close()
+    return results
+
+# --- CALLBACK FOR EPOCH-WISE METRIC TRACKING ---
+class EpochMetricsCallback(TrainerCallback):
+    def __init__(self, test_dataset, label_names, output_dir):
+        self.test_dataset = test_dataset
+        self.label_names = label_names
+        self.output_dir = output_dir
+        self.epoch_metrics = []
+        self.trainer = None  # Will be set after trainer is created
+    def set_trainer(self, trainer):
+        self.trainer = trainer
+    def on_evaluate(self, args, state, control, **kwargs):
+        predictions = self.trainer.predict(self.test_dataset)
+        logits = predictions.predictions
+        labels = np.array([item['labels'] for item in self.test_dataset])
+        probs = torch.sigmoid(torch.tensor(logits)).numpy()
+        preds = (probs > 0.5).astype(int)
+        epoch_metrics = {}
+        for i, label in enumerate(self.label_names):
+            y_true = labels[:, i]
+            y_proba = probs[:, i]
+            if y_true.sum() > 0:
+                try:
+                    auc = roc_auc_score(y_true, y_proba)
+                    pr_auc = average_precision_score(y_true, y_proba)
+                except Exception:
+                    auc = 0.0
+                    pr_auc = 0.0
+                epoch_metrics[f'{label}_auc'] = auc
+                epoch_metrics[f'{label}_pr_auc'] = pr_auc
+        precision_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(labels.flatten(), preds.flatten(), average='micro', zero_division=0)
+        precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(labels, preds, average='macro', zero_division=0)
+        epoch_metrics['f1_micro'] = f1_micro
+        epoch_metrics['f1_macro'] = f1_macro
+        self.epoch_metrics.append(epoch_metrics)
+    def plot_metrics(self):
+        if self.epoch_metrics:
+            import matplotlib.pyplot as plt
+            metrics = ['f1_macro','f1_micro'] + [f'{l}_auc' for l in self.label_names] + [f'{l}_pr_auc' for l in self.label_names]
+            plt.figure(figsize=(12,8))
+            for m in metrics:
+                vals = [d.get(m,0) for d in self.epoch_metrics]
+                plt.plot(range(1,len(vals)+1), vals, marker='o', label=m)
+            plt.xlabel('Epoch'); plt.ylabel('Score'); plt.title('LoRA Metrics Over Epochs'); plt.legend(); plt.tight_layout()
+            plt.savefig(os.path.join(self.output_dir, "plots", "lora_metrics_over_epochs.png"), dpi=300)
+            plt.close()
+
 def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     """Main LoRA training function for ChemBERTa odor classification"""
     if config is None:
@@ -762,7 +895,17 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     
     # Setup model and tokenizer
     model, tokenizer = setup_model_and_tokenizer(config)
-    
+
+    # Baseline kNN before LoRA
+    print_header("BASELINE KNN ON CHEMBERTA EMBEDDINGS (NO LORA)")
+    base_model = model.base_model if hasattr(model, 'base_model') else model
+    train_emb = extract_embeddings(base_model, tokenizer, train_df, config)
+    test_emb = extract_embeddings(base_model, tokenizer, test_df, config)
+    train_labels = train_df[config.LABEL_NAMES].values
+    test_labels = test_df[config.LABEL_NAMES].values
+    baseline_results = run_knn_baseline(train_emb, train_labels, test_emb, test_labels, config.LABEL_NAMES, config.OUTPUT_DIR, prefix="baseline_knn")
+    print_stats("Baseline kNN Metrics", baseline_results)
+
     # Prepare datasets
     train_dataset, test_dataset = prepare_datasets(train_df, test_df, tokenizer, config)
     
@@ -859,16 +1002,18 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     
     # Create callback for history tracking
     history_callback = TrainingHistoryCallback()
-    
+    epoch_metrics_callback = EpochMetricsCallback(test_dataset, config.LABEL_NAMES, config.OUTPUT_DIR)
+
     trainer = MultiLabelOdorTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
         compute_metrics=lambda x: compute_multi_label_metrics(x, config.LABEL_NAMES),
-        callbacks=[history_callback],
+        callbacks=[history_callback, epoch_metrics_callback],
         class_weights=class_weights,  # Pass class weights for imbalanced data
     )
+    epoch_metrics_callback.set_trainer(trainer)
     print_success("Trainer initialized with BCE loss and history tracking")
     
     # Start training
@@ -878,9 +1023,9 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     print(f"💾 Model checkpoints saved every {training_args.save_steps} steps")
     
     training_start = time.time()
-    
-    # Train the model
     trainer.train()
+    # Plot epoch-wise metrics
+    epoch_metrics_callback.plot_metrics()
     
     training_time = time.time() - training_start
     print_header("TRAINING COMPLETED")
@@ -918,56 +1063,47 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     print_step("Extracting training history for visualization")
     training_history = history_callback.get_history()
 
-    # Fallback: If all lists are empty or all None, print error and skip plot
-    metrics_to_check = ['train_loss', 'eval_loss', 'eval_f1_macro', 'eval_f1_micro']
-    all_empty = all(
-        not any(x is not None and isinstance(x, (int, float)) for x in training_history.get(metric, []))
-        for metric in metrics_to_check
+    # Filter out None values and ensure alignment (but keep at least some data)
+    epochs = training_history['epoch'] if 'epoch' in training_history else []
+    train_losses = [loss for loss in training_history['train_loss'] if loss is not None and isinstance(loss, (int, float))]
+    eval_losses = [loss for loss in training_history['eval_loss'] if loss is not None and isinstance(loss, (int, float))]
+    eval_f1_macro = [f1 for f1 in training_history['eval_f1_macro'] if f1 is not None and isinstance(f1, (int, float))]
+    eval_f1_micro = [f1 for f1 in training_history['eval_f1_micro'] if f1 is not None and isinstance(f1, (int, float))]
+    learning_rates = [lr for lr in training_history['learning_rate'] if lr is not None and isinstance(lr, (int, float))]
+
+    # Update training_history with clean data
+    training_history = {
+        'epoch': epochs,
+        'train_loss': train_losses,
+        'eval_loss': eval_losses,
+        'eval_f1_macro': eval_f1_macro,
+        'eval_f1_micro': eval_f1_micro,
+        'learning_rate': learning_rates
+    }
+
+    print(f"📈 Captured {len(train_losses)} training loss points")
+    print(f"📈 Captured {len(eval_losses)} validation loss points")
+    print(f"📈 Captured {len(eval_f1_macro)} F1 macro points")
+    print(f"📈 Captured {len(eval_f1_micro)} F1 micro points")
+
+    print(f"✅ Training completed all {len(epochs)} epochs")
+
+    # Detailed evaluation with predictions for plotting
+    print_step("Computing detailed predictions for visualization")
+    predictions = trainer.predict(test_dataset)
+    probabilities = torch.sigmoid(torch.tensor(predictions.predictions)).numpy()
+
+    # Get true labels
+    true_labels = np.array([item['labels'] for item in test_dataset])
+
+    # Create performance plots
+    create_performance_plots(
+        y_true=true_labels,
+        y_proba=probabilities,
+        label_names=config.LABEL_NAMES,
+        output_dir=config.OUTPUT_DIR,
+        training_history=training_history
     )
-    if all_empty:
-        print("[ERROR] No training history data collected. No plot will be generated.")
-    else:
-        # Filter out None values and ensure alignment (but keep at least some data)
-        epochs = training_history['epoch'] if 'epoch' in training_history else []
-        train_losses = [loss for loss in training_history['train_loss'] if loss is not None and isinstance(loss, (int, float))]
-        eval_losses = [loss for loss in training_history['eval_loss'] if loss is not None and isinstance(loss, (int, float))]
-        eval_f1_macro = [f1 for f1 in training_history['eval_f1_macro'] if f1 is not None and isinstance(f1, (int, float))]
-        eval_f1_micro = [f1 for f1 in training_history['eval_f1_micro'] if f1 is not None and isinstance(f1, (int, float))]
-        learning_rates = [lr for lr in training_history['learning_rate'] if lr is not None and isinstance(lr, (int, float))]
-
-        # Update training_history with clean data
-        training_history = {
-            'epoch': epochs,
-            'train_loss': train_losses,
-            'eval_loss': eval_losses,
-            'eval_f1_macro': eval_f1_macro,
-            'eval_f1_micro': eval_f1_micro,
-            'learning_rate': learning_rates
-        }
-
-        print(f"📈 Captured {len(train_losses)} training loss points")
-        print(f"📈 Captured {len(eval_losses)} validation loss points")
-        print(f"📈 Captured {len(eval_f1_macro)} F1 macro points")
-        print(f"📈 Captured {len(eval_f1_micro)} F1 micro points")
-
-        print(f"✅ Training completed all {len(epochs)} epochs")
-
-        # Detailed evaluation with predictions for plotting
-        print_step("Computing detailed predictions for visualization")
-        predictions = trainer.predict(test_dataset)
-        probabilities = torch.sigmoid(torch.tensor(predictions.predictions)).numpy()
-
-        # Get true labels
-        true_labels = np.array([item['labels'] for item in test_dataset])
-
-        # Create performance plots
-        create_performance_plots(
-            y_true=true_labels,
-            y_proba=probabilities,
-            label_names=config.LABEL_NAMES,
-            output_dir=config.OUTPUT_DIR,
-            training_history=training_history
-        )
 
     # Save the final model (simple single checkpoint)
     print_step("Saving final model checkpoint")
@@ -994,7 +1130,7 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="LoRA fine-tune ChemBERTa for odor classification")
-    parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--lora_r", type=int, default=16, help="LoRA rank")
