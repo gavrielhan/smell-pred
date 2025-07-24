@@ -51,20 +51,14 @@ Both approaches handle the multi-label nature of odor prediction, where molecule
 ```bash
 conda create -n scent-env python=3.10
 conda activate scent-env
-# Install pip dependencies
 pip install -r requirements.txt
 ```
 
 ### 2. Run ChemBERTa Fine-tuning
 ```bash
-# Local training (20 epochs)
-python chemberta_odor_finetuning.py --epochs 20 --seed 42
+# Local training, see the script for the full list of arguments
+python chemberta_odor_finetuning.py --epochs 10 --seed 42
 
-# Quick test (2 epochs)  
-python chemberta_odor_finetuning.py --epochs 2 --batch_size 8 --seed 42
-
-# HuggingFace/Colab compatible
-python run_on_huggingface.py
 ```
 
 ### 3. Run Traditional ML Pipeline
@@ -124,13 +118,6 @@ Update your script paths accordingly if you add new data or scripts.
 - **Output**: 4 sigmoid neurons for multi-label classification
 - **Loss**: Binary Cross-Entropy with class weights for imbalance
 
-### Key Features
-- ✅ **Memory Efficient**: LoRA reduces memory usage by ~90%
-- ✅ **Multi-Platform**: CUDA, Apple MPS, CPU compatible
-- ✅ **Class Weights**: Handles imbalanced labels
-- ✅ **Reproducible**: Fixed seeds for consistent results
-- ✅ **Early Stopping**: Prevents overfitting
-- ✅ **Comprehensive Metrics**: ROC-AUC, PR-AUC, F1 scores per class
 
 ### Training Configuration
 ```python
@@ -277,7 +264,7 @@ Both approaches properly handle the multi-label nature of odor prediction:
 python chemberta_odor_finetuning.py \
     --epochs 8 \
     --batch_size 8 \
-    --learning_rate 3e-4 \
+    --learning_rate 1e-4 \
     --lora_r 16 \
     --seed 42
 ```
@@ -303,34 +290,12 @@ python chemberta_odor_predict.py \
 
 ---
 
-## 📊 **Evaluation Metrics**
-
-### Multi-Label Metrics
-- **Exact Match** (Subset Accuracy): All labels correct
-- **Hamming Loss**: Average per-label error rate  
-- **Micro F1**: Treats each label prediction independently
-- **Macro F1**: Average across label classes
-
-### Per-Class Metrics
-- **ROC-AUC**: Area under ROC curve
-- **PR-AUC**: Area under Precision-Recall curve (better for imbalanced data)
-- **Precision/Recall/F1**: Standard classification metrics
-
----
-
 ## 💡 **Key Insights**
 
-### Model Performance
 - **ChemBERTa excels** at capturing complex molecular patterns
 - **Traditional ML** provides faster training and interpretability
 - **Multi-label prediction** is challenging due to label imbalance
-- **Class weights** are crucial for minority classes (minty, pungent)
-
-### Label Characteristics
-- **Sweet & Floral**: Easier to predict (balanced, high frequency)
-- **Minty & Pungent**: Harder due to low frequency and imbalance
-- **Label Correlations**: Some odors co-occur more frequently
-- **Molecular Complexity**: More labels per molecule increase difficulty
+- **Class weights** are crucial for minority classes (mint, pungent)
 
 ---
 
@@ -358,12 +323,9 @@ conda activate scent-env
 ## 📝 **Future Improvements**
 
 ### Model Enhancements
-- [ ] Ensemble ChemBERTa + Traditional ML predictions
-- [ ] Attention visualization for model interpretability
+- [ ] Try graph-based models, or an esamble of models
       
 ### Data Augmentation
-- [ ] SMILES augmentation (randomized notation)
-- [ ] Molecular scaffolds and fragments
 - [ ] Semi-supervised learning with unlabeled molecules
 - [ ] Additional odor classes and datasets
 
