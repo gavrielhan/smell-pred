@@ -10,8 +10,8 @@ Understanding odour begins with chemistry: smell arises when volatile molecules 
 
 This project implements a complete pipeline for predicting multiple odor labels from molecular structures. We use two complementary approaches:
 
-1. **🧬 ChemBERTa + LoRA**: Parameter-efficient fine-tuning of a chemical language model
-2. **⚗️ Traditional ML**: LightGBM/XGBoost with molecular fingerprints and descriptors
+1. ** ChemBERTa + LoRA**: Parameter-efficient fine-tuning of a chemical language model
+2. ** Traditional ML**: LightGBM/XGBoost with molecular fingerprints and descriptors
 
 Both approaches handle the multi-label nature of odor prediction, where molecules can exhibit multiple odor characteristics simultaneously.
 
@@ -109,7 +109,7 @@ Update your script paths accordingly if you add new data or scripts.
 
 ---
 
-## 🧬 **ChemBERTa Approach**
+##  **ChemBERTa Approach**
 
 ### Model Architecture
 - **Base Model**: `seyonec/SMILES_tokenized_PubChem_shard00_160k` (ChemBERTa)
@@ -130,7 +130,7 @@ WARMUP_STEPS = 100
 
 ---
 
-## ⚗️ **Traditional ML Approach**
+##  **Traditional ML Approach**
 
 ### Feature Engineering
 - **Morgan Fingerprints**: 2048-bit molecular fingerprints
