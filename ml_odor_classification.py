@@ -218,6 +218,14 @@ def extract_molecular_features(smiles_list: List[str], config: MLOdorConfig) -> 
     features_list = []
     valid_indices = []
     
+    # Use MorganGenerator if available (RDKit >=2023.03)
+    try:
+        from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+        morgan_generator = GetMorganGenerator(radius=config.MORGAN_RADIUS, fpSize=config.MORGAN_NBITS)
+        use_morgan_generator = True
+    except ImportError:
+        use_morgan_generator = False
+    
     for i, smiles in enumerate(smiles_list):
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
@@ -228,10 +236,16 @@ def extract_molecular_features(smiles_list: List[str], config: MLOdorConfig) -> 
         
         # Morgan fingerprints
         if config.USE_FINGERPRINTS:
-            morgan_fp = GetMorganFingerprintAsBitVect(
-                mol, config.MORGAN_RADIUS, nBits=config.MORGAN_NBITS
-            )
-            feature_vector.extend(list(morgan_fp))
+            if use_morgan_generator:
+                fp = morgan_generator.GetFingerprint(mol)
+                morgan_fp = list(fp.ToBitString())
+                morgan_fp = [int(x) for x in morgan_fp]
+            else:
+                morgan_fp = GetMorganFingerprintAsBitVect(
+                    mol, config.MORGAN_RADIUS, nBits=config.MORGAN_NBITS
+                )
+                morgan_fp = list(morgan_fp)
+            feature_vector.extend(morgan_fp)
         
         # RDKit molecular descriptors
         if config.USE_FEATURES:
@@ -519,45 +533,61 @@ def create_ml_plots(results_dict: Dict, config: MLOdorConfig, output_dir: str):
     plt.close()
     print(f"   💾 Model comparison saved to: {comparison_path}")
     
-    # 2. ROC curves for best model
-    best_model = max(results_dict.keys(), key=lambda k: results_dict[k]['f1_macro'])
-    best_results = results_dict[best_model]
+    # 2. ROC and PR curves for all models
+    for model in models:
+        results = results_dict[model]
+        print(f"📊 Creating ROC and PR curves for model: {model}")
+        plt.figure(figsize=(12, 8))
+        colors = sns.color_palette("husl", len(config.LABEL_NAMES))
+        for i, (label, color) in enumerate(zip(config.LABEL_NAMES, colors)):
+            y_true = results['y_true'][:, i]
+            y_prob = results['y_pred_proba'][:, i]
+            if len(np.unique(y_true)) > 1:
+                fpr, tpr, _ = roc_curve(y_true, y_prob)
+                auc_score = roc_auc_score(y_true, y_prob)
+                plt.plot(fpr, tpr, color=color, linewidth=2,
+                        label=f'{label.upper()} (AUC = {auc_score:.3f})')
+        plt.plot([0, 1], [0, 1], 'k--', linewidth=1, alpha=0.5)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate', fontsize=12)
+        plt.ylabel('True Positive Rate', fontsize=12)
+        plt.title(f'ROC Curves - {model.upper()}', fontsize=14, fontweight='bold')
+        plt.legend(loc="lower right", fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        roc_path = os.path.join(plots_dir, f"roc_curves_{model}.png")
+        plt.savefig(roc_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"   💾 ROC curves saved to: {roc_path}")
+        # PR-AUC curves
+        plt.figure(figsize=(12, 8))
+        for i, (label, color) in enumerate(zip(config.LABEL_NAMES, colors)):
+            y_true = results['y_true'][:, i]
+            y_prob = results['y_pred_proba'][:, i]
+            if len(np.unique(y_true)) > 1:
+                precision, recall, _ = precision_recall_curve(y_true, y_prob)
+                pr_auc = average_precision_score(y_true, y_prob)
+                plt.plot(recall, precision, color=color, linewidth=2,
+                        label=f'{label.upper()} (PR-AUC = {pr_auc:.3f})')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('Recall', fontsize=12)
+        plt.ylabel('Precision', fontsize=12)
+        plt.title(f'Precision-Recall Curves - {model.upper()}', fontsize=14, fontweight='bold')
+        plt.legend(loc="lower left", fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        pr_path = os.path.join(plots_dir, f"precision_recall_curves_{model}.png")
+        plt.savefig(pr_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"   💾 PR curves saved to: {pr_path}")
     
-    print(f"📊 Creating ROC curves for best model: {best_model}")
-    plt.figure(figsize=(12, 8))
-    
-    colors = sns.color_palette("husl", len(config.LABEL_NAMES))
-    
-    for i, (label, color) in enumerate(zip(config.LABEL_NAMES, colors)):
-        y_true = best_results['y_true'][:, i]
-        y_prob = best_results['y_pred_proba'][:, i]
-        
-        if len(np.unique(y_true)) > 1:
-            fpr, tpr, _ = roc_curve(y_true, y_prob)
-            auc_score = roc_auc_score(y_true, y_prob)
-            plt.plot(fpr, tpr, color=color, linewidth=2,
-                    label=f'{label.upper()} (AUC = {auc_score:.3f})')
-    
-    plt.plot([0, 1], [0, 1], 'k--', linewidth=1, alpha=0.5)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate', fontsize=12)
-    plt.ylabel('True Positive Rate', fontsize=12)
-    plt.title(f'ROC Curves - {best_model.upper()}', fontsize=14, fontweight='bold')
-    plt.legend(loc="lower right", fontsize=10)
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    
-    roc_path = os.path.join(plots_dir, f"roc_curves_{best_model}.png")
-    plt.savefig(roc_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    print(f"   💾 ROC curves saved to: {roc_path}")
-    
-    # 3. Multi-label pattern analysis
+    # 3. Multi-label pattern analysis (unchanged)
     print("📊 Creating multi-label pattern analysis...")
     fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    
-    # Get data from best model for analysis
+    best_model = max(results_dict.keys(), key=lambda k: results_dict[k]['f1_macro'])
+    best_results = results_dict[best_model]
     y_true = best_results['y_true']
     y_pred = best_results['y_pred_binary']
     
@@ -732,7 +762,11 @@ def run_ml_pipeline(config: MLOdorConfig, models_to_run: List[str], use_gpu: boo
             'exact_match': results['exact_match'],
             'hamming_loss': results['hamming_loss'],
             'training_time': results['training_time'],
-            **{f'{label}_f1': results[f'{label}_f1'] for label in config.LABEL_NAMES}
+            **{f'{label}_f1': results[f'{label}_f1'] for label in config.LABEL_NAMES},
+            **{f'{label}_precision': results[f'{label}_precision'] for label in config.LABEL_NAMES},
+            **{f'{label}_recall': results[f'{label}_recall'] for label in config.LABEL_NAMES},
+            **{f'{label}_auc': results[f'{label}_auc'] for label in config.LABEL_NAMES},
+            **{f'{label}_pr_auc': results[f'{label}_pr_auc'] for label in config.LABEL_NAMES},
         }
         for model_name, results in results_dict.items()
     ])

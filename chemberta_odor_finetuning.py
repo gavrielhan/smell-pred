@@ -216,10 +216,12 @@ class MultiLabelOdorTrainer(Trainer):
             super().log(logs, start_time)
         else:
             super().log(logs)
-        
         # Print training progress
-        if 'loss' in logs and logs.get('step', 0) % 25 == 0:  # Every 25 steps (adjusted for more frequent logging)
-            step = logs.get('step', 0)
+        step = logs.get('step', None)
+        if step is None:
+            # Fallback: use self.state.global_step if available
+            step = getattr(self.state, 'global_step', None)
+        if 'loss' in logs and step is not None and step % 25 == 0:  # Every 25 steps
             loss = logs.get('loss', 0)
             lr = logs.get('learning_rate', 0)
             print(f"📈 Step {step}: Loss = {loss:.4f}, LR = {lr:.2e}")
@@ -916,46 +918,67 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     # Extract training history from callback
     print_step("Extracting training history for visualization")
     training_history = history_callback.get_history()
-    
-    # Filter out None values and ensure alignment
-    epochs = training_history['epoch']
-    train_losses = [loss for loss in training_history['train_loss'] if loss is not None]
-    eval_losses = [loss for loss in training_history['eval_loss'] if loss is not None]
-    eval_f1_macro = [f1 for f1 in training_history['eval_f1_macro'] if f1 is not None]
-    eval_f1_micro = [f1 for f1 in training_history['eval_f1_micro'] if f1 is not None]
-    
-    # Update training_history with clean data
-    training_history = {
-        'epoch': epochs,
-        'train_loss': train_losses,
-        'eval_loss': eval_losses,
-        'eval_f1_macro': eval_f1_macro,
-        'eval_f1_micro': eval_f1_micro,
-        'learning_rate': [lr for lr in training_history['learning_rate'] if lr is not None]
-    }
-    
-    print(f"📈 Captured {len(train_losses)} training loss points")
-    print(f"📈 Captured {len(eval_losses)} validation loss points")
-    print(f"📈 Captured {len(eval_f1_macro)} F1 macro points")
-    
-    print(f"✅ Training completed all {len(epochs)} epochs")
-    
-    # Detailed evaluation with predictions for plotting
-    print_step("Computing detailed predictions for visualization")
-    predictions = trainer.predict(test_dataset)
-    probabilities = torch.sigmoid(torch.tensor(predictions.predictions)).numpy()
-    
-    # Get true labels
-    true_labels = np.array([item['labels'] for item in test_dataset])
-    
-    # Create performance plots
-    create_performance_plots(
-        y_true=true_labels,
-        y_proba=probabilities,
-        label_names=config.LABEL_NAMES,
-        output_dir=config.OUTPUT_DIR,
-        training_history=training_history
+
+    # DEBUG: Print the full training history before plotting
+    print("\n[DEBUG] Full training_history before plotting:")
+    for k, v in training_history.items():
+        print(f"  {k}: {v}")
+
+    # Count non-None values for each metric
+    for k, v in training_history.items():
+        non_none_count = sum(x is not None for x in v)
+        print(f"[DEBUG] {k}: {non_none_count} non-None values out of {len(v)}")
+
+    # Fallback: If all lists are empty or all None, print error and skip plot
+    metrics_to_check = ['train_loss', 'eval_loss', 'eval_f1_macro', 'eval_f1_micro']
+    all_empty = all(
+        not any(x is not None and isinstance(x, (int, float)) for x in training_history.get(metric, []))
+        for metric in metrics_to_check
     )
+    if all_empty:
+        print("[ERROR] No training history data collected. No plot will be generated.")
+    else:
+        # Filter out None values and ensure alignment (but keep at least some data)
+        epochs = training_history['epoch'] if 'epoch' in training_history else []
+        train_losses = [loss for loss in training_history['train_loss'] if loss is not None and isinstance(loss, (int, float))]
+        eval_losses = [loss for loss in training_history['eval_loss'] if loss is not None and isinstance(loss, (int, float))]
+        eval_f1_macro = [f1 for f1 in training_history['eval_f1_macro'] if f1 is not None and isinstance(f1, (int, float))]
+        eval_f1_micro = [f1 for f1 in training_history['eval_f1_micro'] if f1 is not None and isinstance(f1, (int, float))]
+        learning_rates = [lr for lr in training_history['learning_rate'] if lr is not None and isinstance(lr, (int, float))]
+
+        # Update training_history with clean data
+        training_history = {
+            'epoch': epochs,
+            'train_loss': train_losses,
+            'eval_loss': eval_losses,
+            'eval_f1_macro': eval_f1_macro,
+            'eval_f1_micro': eval_f1_micro,
+            'learning_rate': learning_rates
+        }
+
+        print(f"📈 Captured {len(train_losses)} training loss points")
+        print(f"📈 Captured {len(eval_losses)} validation loss points")
+        print(f"📈 Captured {len(eval_f1_macro)} F1 macro points")
+        print(f"📈 Captured {len(eval_f1_micro)} F1 micro points")
+
+        print(f"✅ Training completed all {len(epochs)} epochs")
+
+        # Detailed evaluation with predictions for plotting
+        print_step("Computing detailed predictions for visualization")
+        predictions = trainer.predict(test_dataset)
+        probabilities = torch.sigmoid(torch.tensor(predictions.predictions)).numpy()
+
+        # Get true labels
+        true_labels = np.array([item['labels'] for item in test_dataset])
+
+        # Create performance plots
+        create_performance_plots(
+            y_true=true_labels,
+            y_proba=probabilities,
+            label_names=config.LABEL_NAMES,
+            output_dir=config.OUTPUT_DIR,
+            training_history=training_history
+        )
     
     # Save the final model (simple single checkpoint)
     print_step("Saving final model checkpoint")
@@ -982,8 +1005,8 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="LoRA fine-tune ChemBERTa for odor classification")
-    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
-    parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
+    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--lora_r", type=int, default=16, help="LoRA rank")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")

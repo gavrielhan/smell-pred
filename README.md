@@ -321,4 +321,34 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 
+## Viewing Training Curves with TensorBoard
+
+When you run the ChemBERTa fine-tuning script, training and validation loss curves (and other metrics) are automatically logged to the `chemberta_lora_logs/` directory using TensorBoard format.
+
+To view these plots:
+
+1. **Install TensorBoard** (if you haven't already):
+   ```bash
+   pip install tensorboard
+   # or, with conda:
+   conda install -c conda-forge tensorboard
+   ```
+
+2. **Start TensorBoard** from your project root:
+   ```bash
+   tensorboard --logdir chemberta_lora_logs
+   ```
+
+3. **Open your browser** and go to [http://localhost:6006/](http://localhost:6006/)
+
+4. **Navigate to the 'Scalars' tab** to see plots for:
+   - `loss` (training loss)
+   - `eval_loss` (validation loss)
+   - Other metrics (F1, accuracy, etc.)
+
+You can zoom, pan, and download the plots as images for your reports or presentations.
+
+If you don't see any plots, make sure your script has finished running and that logs exist in the `chemberta_lora_logs/` directory.
+
+
 
