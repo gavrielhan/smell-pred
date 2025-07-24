@@ -151,23 +151,23 @@ WARMUP_STEPS = 100
 
 ---
 
-## 📈 **Results & Performance**
+## 📈 **Results & Performance** (the 🏆 indicates the best score out of the 3 models)
 
 ### ChemBERTa LoRA Results (8 epochs run -> optimized out of 50)
 
 | Metric | Score |
 |--------|-------|
-| Macro F1 | <span style="color:red">0.6536</span> |
-| Micro F1 | <span style="color:red">0.8263</span> |
+| Macro F1 | **0.6536** 🏆 |
+| Micro F1 | **0.8263** 🏆 |
 | Exact Match | 0.5382 |
 | Hamming Loss | 0.1737 |
 
 | Class | Precision | Recall | F1 | ROC-AUC | PR-AUC |
 |-------|-----------|--------|----|---------| -------|
 | Sweet | 0.6119 | 0.4059 | 0.4881 | 0.7149 | 0.6155 |
-| Floral | 0.7348 | <span style="color:red">0.8526</span> | 0.7893 | 0.7741 | <span style="color:red">0.8006</span> |
+| Floral | 0.7348 | **0.8526** 🏆 | 0.7893 | 0.7741 | **0.8006** 🏆 |
 | Mint | 0.7143 | 0.5172 | 0.6000 | 0.8717 | 0.6174 |
-| Pungent | <span style="color:red">0.8750</span> | 0.6363 | <span style="color:red">0.7368</span> | <span style="color:red">0.9710</span> | <span style="color:red">0.7441</span> |
+| Pungent | **0.8750** 🏆 | 0.6363 | **0.7368** 🏆 | **0.9710** 🏆 | **0.7441** 🏆 |
 
 
 ### LightGBM Results
@@ -181,10 +181,10 @@ WARMUP_STEPS = 100
 
 | Class     | Precision | Recall | F1    | ROC-AUC | PR-AUC |
 |-----------|-----------|--------|-------|---------|--------|
-| Sweet    | 0.6200      | <span style="color:red">0.7500</span>   | <span style="color:red">0.6169</span>  | 0.7481    | 0.6948   |
-| Floral   | <span style="color:red">0.8418</span>      | 0.6139   | <span style="color:red">0.8471</span>  | <span style="color:red">0.8634</span>    | <span style="color:red">0.8886</span>   |
-| Mint     | 0.8500      | <span style="color:red">0.8526</span>   | 0.6939  | 0.8637    | 0.7281   |
-| Pungent  | <span style="color:red">0.7500</span>      | 0.2727   | 0.4000  | 0.9008    | 0.5297   |
+| Sweet    | 0.6200      | **0.7500** 🏆   | **0.6169** 🏆  | 0.7481    | 0.6948   |
+| Floral   | **0.8418** 🏆      | 0.6139   | **0.8471** 🏆  | **0.8634** 🏆    | **0.8886** 🏆   |
+| Mint     | 0.8500      | **0.8526** 🏆   | 0.6939  | 0.8637    | 0.7281   |
+| Pungent  | **0.7500** 🏆      | 0.2727   | 0.4000  | 0.9008    | 0.5297   |
 
 
 ### XGBoost Results
@@ -193,15 +193,15 @@ WARMUP_STEPS = 100
 |--------|-------|
 | Macro F1 | 0.6480 |
 | Micro F1 | 0.7521 |
-| Exact Match | <span style="color:red">0.5916</span> |
-| Hamming Loss | <span style="color:red">0.1384</span> |
+| Exact Match | **0.5916** 🏆 |
+| Hamming Loss | **0.1384** 🏆 |
 
 | Class     | Precision | Recall | F1    | ROC-AUC | PR-AUC |
 |-----------|-----------|--------|-------|---------|--------|
-| Sweet     | <span style="color:red">0.6224</span>      | 0.6039   | 0.6131  | 0.7421    | 0.7118   |
-| Floral    | 0.8405      | <span style="color:red">0.8782</span>   | 0.8589  | 0.8585    | 0.8727   |
-| Mint     | <span style="color:red">0.8636</span>      | 0.6552   | <span style="color:red">0.7451</span>  | <span style="color:red">0.8832</span>    | <span style="color:red">0.7326</span>   |
-| Pungent   | 0.6000      | 0.2727   | 0.3750  | <span style="color:red">0.9243</span>    | <span style="color:red">0.5252</span>   |
+| Sweet     | **0.6224** 🏆      | 0.6039   | 0.6131  | 0.7421    | 0.7118   |
+| Floral    | 0.8405      | **0.8782** 🏆   | 0.8589  | 0.8585    | 0.8727   |
+| Mint     | **0.8636** 🏆      | 0.6552   | **0.7451** 🏆  | **0.8832** 🏆    | **0.7326** 🏆   |
+| Pungent   | 0.6000      | 0.2727   | 0.3750  | **0.9243** 🏆    | **0.5252** 🏆   |
 
 
 ---
