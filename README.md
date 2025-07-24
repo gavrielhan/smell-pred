@@ -237,14 +237,15 @@ Both approaches generate comprehensive plots:
 
 ## Decision Visualization
 
-Through the scripts 'visualize_attention.py' and 'visualize_shap_tree.py', we can visualize the main contributors to the model label predictions.
+Through the scripts visualize_attention.py and visualize_shap_tree.py, we can visualize the main contributors to the model label predictions.
 The left molecule is Isopentyl acetate (also known as isoamyl acetate); the odor is sweet, fruity, commonly known as the smell of banana or pear; and the ester group is known to contribute strongly to the sweet/fruity smell.
 The right molecule is a chiral derivative of phenylbutanoate with a tert-butyl group on the phenyl ring; the Aromatic ring, ketone side chain, and chiral centers are usually associated with floral/fragrant characteristics.
 
 
-![Test Image 1](visualization_attention.png)
+<img src="visualization_attention.png" alt="Attention" width="400"/>
 
-![Test Image 2](visualization_shap.png)
+
+<img src="visualization_shap.png" alt="SHAP" width="400"/>
 
 ---
 
