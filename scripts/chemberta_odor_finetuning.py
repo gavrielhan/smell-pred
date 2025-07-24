@@ -1130,7 +1130,7 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="LoRA fine-tune ChemBERTa for odor classification")
-    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=8, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--lora_r", type=int, default=16, help="LoRA rank")
