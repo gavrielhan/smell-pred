@@ -104,7 +104,7 @@ class OdorChemBERTaConfig:
     # Model configuration
     MODEL_CHECKPOINT = "seyonec/SMILES_tokenized_PubChem_shard00_160k"  # ChemBERTa base
     NUM_LABELS = 4
-    LABEL_NAMES = ['sweet', 'floral', 'minty', 'pungent']
+    LABEL_NAMES = ['sweet', 'floral', 'mint', 'pungent']
     MAX_LENGTH = 256  # Optimized for memory efficiency
     
     # LoRA configuration - Parameter-efficient fine-tuning
@@ -124,8 +124,8 @@ class OdorChemBERTaConfig:
     WARMUP_STEPS = 100  # More warmup for longer training
     
     # Data files
-    TRAIN_FILE = "data/goodscents_train.csv"
-    TEST_FILE = "data/goodscents_test.csv"
+    TRAIN_FILE = "data/pyrfume_train_4odors.csv"
+    TEST_FILE = "data/pyrfume_test_4odors.csv"
     PREDICT_FILE = "data/bushdid_predict.csv"
     
     # Reproducibility
@@ -161,7 +161,6 @@ class TrainingHistoryCallback(TrainerCallback):
         self.training_history['eval_f1_macro'].append(eval_f1_macro)
         self.training_history['eval_f1_micro'].append(eval_f1_micro)
         self.training_history['learning_rate'].append(lr)
-        print(f"[DEBUG] step: {step}, epoch: {epoch}, train_loss: {train_loss}, eval_loss: {eval_loss}, eval_f1_macro: {eval_f1_macro}, eval_f1_micro: {eval_f1_micro}, lr: {lr}")
     def get_history(self):
         return self.training_history
 
@@ -254,7 +253,7 @@ def load_datasets(config: OdorChemBERTaConfig) -> Tuple[pd.DataFrame, pd.DataFra
     
     # Check for required columns
     print("\n🔍 Checking dataset columns...")
-    required_cols = ['IsomericSMILES'] + config.LABEL_NAMES
+    required_cols = ['SMILES'] + config.LABEL_NAMES
     for df_name, df in [('Train', train_df), ('Test', test_df)]:
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
@@ -274,8 +273,8 @@ def load_datasets(config: OdorChemBERTaConfig) -> Tuple[pd.DataFrame, pd.DataFra
     print_stats("Training Set Label Distribution", label_stats)
     
     # Check for missing SMILES
-    train_missing = train_df['IsomericSMILES'].isna().sum()
-    test_missing = test_df['IsomericSMILES'].isna().sum()
+    train_missing = train_df['SMILES'].isna().sum()
+    test_missing = test_df['SMILES'].isna().sum()
     if train_missing > 0 or test_missing > 0:
         print(f"⚠️  Missing SMILES - Train: {train_missing}, Test: {test_missing}")
     else:
@@ -286,7 +285,7 @@ def load_datasets(config: OdorChemBERTaConfig) -> Tuple[pd.DataFrame, pd.DataFra
 def tokenize_smiles(examples: Dict, tokenizer, max_length: int = 512) -> Dict:
     """Tokenize SMILES strings for transformer input"""
     return tokenizer(
-        examples["IsomericSMILES"], 
+        examples["SMILES"], 
         padding="max_length", 
         truncation=True, 
         max_length=max_length
@@ -919,16 +918,6 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
     print_step("Extracting training history for visualization")
     training_history = history_callback.get_history()
 
-    # DEBUG: Print the full training history before plotting
-    print("\n[DEBUG] Full training_history before plotting:")
-    for k, v in training_history.items():
-        print(f"  {k}: {v}")
-
-    # Count non-None values for each metric
-    for k, v in training_history.items():
-        non_none_count = sum(x is not None for x in v)
-        print(f"[DEBUG] {k}: {non_none_count} non-None values out of {len(v)}")
-
     # Fallback: If all lists are empty or all None, print error and skip plot
     metrics_to_check = ['train_loss', 'eval_loss', 'eval_f1_macro', 'eval_f1_micro']
     all_empty = all(
@@ -979,18 +968,18 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
             output_dir=config.OUTPUT_DIR,
             training_history=training_history
         )
-    
+
     # Save the final model (simple single checkpoint)
     print_step("Saving final model checkpoint")
     final_model_path = os.path.join(config.OUTPUT_DIR, "final_model")
-    
+
     # Save LoRA model and tokenizer
     model.save_pretrained(final_model_path)
     tokenizer.save_pretrained(final_model_path)
-    
+
     print_success(f"Final model saved to: {final_model_path}")
-    
-    # Print summary
+
+    # Print summary (always print at the end)
     print_header("TRAINING SUMMARY")
     summary_stats = {
         'Total training time': f"{training_time/60:.2f} minutes",
@@ -1000,7 +989,7 @@ def train_chemberta_lora_model(config: OdorChemBERTaConfig = None) -> Tuple:
         'Device used': device_info['Current device']
     }
     print_stats("Training Summary", summary_stats)
-    
+
     return trainer, model, tokenizer, eval_results
 
 if __name__ == "__main__":
