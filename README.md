@@ -51,9 +51,8 @@ Both approaches handle the multi-label nature of odor prediction, where molecule
 ```bash
 conda create -n scent-env python=3.10
 conda activate scent-env
-pip install transformers torch datasets peft accelerate
-pip install lightgbm xgboost scikit-learn
-pip install rdkit matplotlib seaborn pandas numpy
+# Install pip dependencies
+pip install -r requirements.txt
 ```
 
 ### 2. Run ChemBERTa Fine-tuning
@@ -101,6 +100,7 @@ smell-pred/
 ├── ml_odor_results/           # Output directory for ML baseline results and plots
 ├── pyrfume-data/              # (Optional) Additional raw data resources
 ├── explore_bushdid_chemberta.ipynb   # Jupyter notebook for data exploration
+├── requirements.txt           # All pip dependencies for the project
 ├── README.md
 └── ... (other directories and files)
 ```
