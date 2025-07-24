@@ -153,7 +153,7 @@ WARMUP_STEPS = 100
 
 ## 📈 **Results & Performance** (the 🏆 indicates the best score out of the 3 models)
 
-### ChemBERTa LoRA Results (8 epochs run -> optimized out of 50)
+### ChemBERTa LoRA Results (7 🏆)
 
 | Metric | Score |
 |--------|-------|
@@ -170,7 +170,7 @@ WARMUP_STEPS = 100
 | Pungent | **0.8750** 🏆 | **0.6363**  🏆| **0.7368** 🏆 | **0.9710** 🏆 | **0.7441** 🏆 |
 
 
-### LightGBM Results
+### LightGBM Results (8 🏆)
 
 | Metric | Score |
 |--------|-------|
@@ -187,7 +187,7 @@ WARMUP_STEPS = 100
 | Pungent  | **0.7500**  | 0.2727   | 0.4000  | 0.9008    | 0.5297   |
 
 
-### XGBoost Results
+### XGBoost Results (9 🏆)
 
 | Metric | Score |
 |--------|-------|
