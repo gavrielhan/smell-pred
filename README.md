@@ -19,17 +19,29 @@ Both approaches handle the multi-label nature of odor prediction, where molecule
 
 ## 📊 **Dataset**
 
-- **Source**: Curated GoodScents dataset from pyrfume-data repository
-- **Training**: 1,460 molecules
-- **Test**: 366 molecules  
-- **Labels**: 4 odor classes (sweet, floral, minty, pungent)
-- **Format**: Multi-label classification (molecules can have 0-4 labels)
+- **Source**: Filtered splits from pyrfume-data, containing only molecules with at least one of the four target odor labels: sweet, floral, mint, pungent.
+- **Files**: 
+  - `data/pyrfume_train_4odors.csv`
+  - `data/pyrfume_val_4odors.csv`
+  - `data/pyrfume_test_4odors.csv`
+- **Columns**:
+  - `SMILES`: Canonical SMILES string for each molecule
+  - `sweet`, `floral`, `mint`, `pungent`: Binary columns (1 = label present, 0 = absent)
+- **Format**: Multi-label classification (molecules can have 1-4 labels)
 
-### Label Distribution:
-- **Sweet**: 55.2% of molecules
-- **Floral**: 49.7% of molecules  
-- **Minty**: 10.6% of molecules
-- **Pungent**: 6.1% of molecules
+### Example row:
+| SMILES | sweet | floral | mint | pungent |
+|--------|-------|--------|------|---------|
+| CCOC(=O)CCC(=O)OCC | 1 | 0 | 0 | 0 |
+
+### Label Distribution (train set):
+- **Total molecules**: 2099
+- **Sweet**: 799 (38.1%)
+- **Floral**: 1249 (59.5%)
+- **Mint**: 229 (10.9%)
+- **Pungent**: 91 (4.3%)
+
+> Note: The label 'mint' is used (not 'minty'), matching the pyrfume-data vocabulary.
 
 ---
 
