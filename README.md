@@ -70,23 +70,33 @@ python ml_odor_classification.py --morgan_bits 4096 --seed 42
 
 ---
 
-## 🏗️ **Repository Structure**
+## Project Structure
+
+The repository is organized as follows:
 
 ```
 MeNow-smell_pred/
-├── chemberta_odor_finetuning.py    # ChemBERTa LoRA fine-tuning
-├── chemberta_odor_predict.py       # Inference with trained ChemBERTa model
-├── ml_odor_classification.py       # Traditional ML pipeline
-├── run_on_huggingface.py          # HuggingFace/Colab runner
-├── explore_bushdid_chemberta.ipynb # Data exploration notebook
-├── goodscents_train.csv           # Training data
-├── goodscents_test.csv            # Test data  
-├── bushdid_predict.csv            # Prediction targets
-├── pyrfume-data/                  # Raw datasets from pyrfume
-└── results/                       # Model outputs and plots
-    ├── chemberta_lora_results/    # ChemBERTa results
-    └── ml_odor_results/           # Traditional ML results
+├── data/                  # All CSV data files (e.g., goodscents_train.csv, bushdid_predict.csv, etc.)
+├── scripts/               # All Python scripts for training, evaluation, ML baselines, and visualization
+│   ├── chemberta_odor_finetuning.py
+│   ├── chemberta_odor_predict.py
+│   ├── ml_odor_classification.py
+│   └── visualize_attention.py
+├── chemberta_lora_results/   # Output directory for ChemBERTa LoRA fine-tuning results
+├── chemberta_lora_logs/      # Output directory for training logs (TensorBoard, etc.)
+├── ml_odor_results/          # Output directory for ML baseline results and plots
+├── pyrfume-data/             # (Optional) Additional data resources
+├── explore_bushdid_chemberta.ipynb   # Jupyter notebook for data exploration
+├── README.md
+└── ... (other directories and files)
 ```
+
+- **All scripts** (except Jupyter notebooks) are in `scripts/`.
+- **All data files** are in `data/`.
+- **Output directories** remain in the project root.
+- **Jupyter notebooks** remain in the project root for easy access.
+
+Update your script paths accordingly if you add new data or scripts.
 
 ---
 
