@@ -200,27 +200,6 @@ Both approaches properly handle the multi-label nature of odor prediction:
 
 ---
 
-## 🚀 **HuggingFace Compatibility**
-
-The project is designed to run seamlessly on HuggingFace Spaces and Google Colab:
-
-### Features
-- ✅ **Auto GPU Detection**: CUDA, MPS, CPU fallback
-- ✅ **Dependency Management**: Automatic package installation
-- ✅ **Memory Optimization**: fp16 for CUDA, optimized batch sizes
-- ✅ **Easy Setup**: Single script execution
-
-### Usage
-```bash
-# Upload data files to HuggingFace Space
-# goodscents_train.csv, goodscents_test.csv, bushdid_predict.csv
-
-# Run training
-python run_on_huggingface.py
-```
-
----
-
 ## 🔧 **Advanced Usage**
 
 ### Custom ChemBERTa Training
@@ -283,7 +262,7 @@ python chemberta_odor_predict.py \
 - **Sweet & Floral**: Easier to predict (balanced, high frequency)
 - **Minty & Pungent**: Harder due to low frequency and imbalance
 - **Label Correlations**: Some odors co-occur more frequently
-- **Molecular Complexity**: More labels per molecule increases difficulty
+- **Molecular Complexity**: More labels per molecule increase difficulty
 
 ---
 
@@ -313,9 +292,7 @@ conda activate scent-env
 ### Model Enhancements
 - [ ] Ensemble ChemBERTa + Traditional ML predictions
 - [ ] Attention visualization for model interpretability
-- [ ] Advanced molecular representations (3D structures, conformers)
-- [ ] Active learning for selective labeling
-
+      
 ### Data Augmentation
 - [ ] SMILES augmentation (randomized notation)
 - [ ] Molecular scaffolds and fragments
@@ -324,9 +301,7 @@ conda activate scent-env
 
 ### Deployment
 - [ ] REST API for real-time predictions
-- [ ] Web interface for molecular odor prediction
 - [ ] Integration with molecular design tools
-- [ ] Batch processing for large molecular libraries
 
 ---
 
@@ -345,21 +320,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🤝 **Contributing**
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
----
-
-## ❓ **Support**
-
-For questions or issues:
-- 📧 Open an issue on GitHub
-- 💬 Check existing issues and discussions
-- 📖 Refer to code documentation and comments
 
 
