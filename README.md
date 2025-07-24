@@ -180,6 +180,7 @@ WARMUP_STEPS = 100
 | **Mint** | 0.7143 | 0.5172 | 0.6000 | 0.8717 | 0.6174 |
 | **Pungent** | 0.8750 | 0.6363 | 0.7368 | 0.9710 | 0.7441 |
 
+
 ### LightGBM Results
 
 | Metric | Score |
@@ -233,6 +234,17 @@ Both approaches generate comprehensive plots:
 - **Per-Class Performance**: ROC-AUC and F1 by odor class
 - **Multi-Label Analysis**: Label co-occurrence, correlation matrix
 - **Error Distribution**: Hamming distance and prediction complexity
+
+## Decision Visualization
+
+Through the scripts 'visualize_attention.py' and 'visualize_shap_tree.py', we can visualize the main contributors to the model label predictions.
+The left molecule is Isopentyl acetate (also known as isoamyl acetate); the odor is sweet, fruity, commonly known as the smell of banana or pear; and the ester group is known to contribute strongly to the sweet/fruity smell.
+The right molecule is a chiral derivative of phenylbutanoate with a tert-butyl group on the phenyl ring; the Aromatic ring, ketone side chain, and chiral centers are usually associated with floral/fragrant characteristics.
+
+
+![Test Image 1](visualization_attention.png)
+
+![Test Image 2](visualization_shap.png)
 
 ---
 
