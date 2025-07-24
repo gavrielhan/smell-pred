@@ -87,26 +87,29 @@ python ml_odor_classification.py --morgan_bits 4096 --seed 42
 The repository is organized as follows:
 
 ```
-MeNow-smell_pred/
-├── data/                  # All CSV data files (e.g., goodscents_train.csv, bushdid_predict.csv, etc.)
-├── scripts/               # All Python scripts for training, evaluation, ML baselines, and visualization
+smell-pred/
+├── data/                      # All CSV data files (e.g., pyrfume_train_4odors.csv, pyrfume_test_4odors.csv, ...)
+├── scripts/                   # All Python scripts for training, evaluation, ML baselines, and visualization
 │   ├── chemberta_odor_finetuning.py
-│   ├── chemberta_odor_predict.py
 │   ├── ml_odor_classification.py
-│   └── visualize_attention.py
-├── chemberta_lora_results/   # Output directory for ChemBERTa LoRA fine-tuning results
-├── chemberta_lora_logs/      # Output directory for training logs (TensorBoard, etc.)
-├── ml_odor_results/          # Output directory for ML baseline results and plots
-├── pyrfume-data/             # (Optional) Additional data resources
+│   ├── visualize_attention.py
+│   ├── visualize_shap_tree.py
+│   ├── convert_pyrfume_to_4odors.py
+│   └── chemberta_odor_eval_plots.py
+├── chemberta_lora_results/    # Output directory for ChemBERTa LoRA fine-tuning results and plots
+├── chemberta_lora_logs/       # Output directory for training logs (TensorBoard, etc.)
+├── ml_odor_results/           # Output directory for ML baseline results and plots
+├── pyrfume-data/              # (Optional) Additional raw data resources
 ├── explore_bushdid_chemberta.ipynb   # Jupyter notebook for data exploration
 ├── README.md
 └── ... (other directories and files)
 ```
 
-- **All scripts** (except Jupyter notebooks) are in `scripts/`.
+- **All scripts** are in `scripts/`.
 - **All data files** are in `data/`.
-- **Output directories** remain in the project root.
+- **Output directories** (`chemberta_lora_results/`, `ml_odor_results/`) contain all plots and results.
 - **Jupyter notebooks** remain in the project root for easy access.
+- **Raw datasets** are in `pyrfume-data/`.
 
 Update your script paths accordingly if you add new data or scripts.
 
