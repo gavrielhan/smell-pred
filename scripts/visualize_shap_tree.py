@@ -12,9 +12,9 @@ import joblib
 from sklearn.multioutput import MultiOutputClassifier
 
 # --- CONFIG ---
-DATA_PATH = "data/bushdid_predict.csv"
+DATA_PATH = "data/pyrfume_test_4odors.csv"
 MODEL_PATH = "ml_odor_results/lightgbm_model.txt"  # or retrain if not present
-LABELS = ['sweet', 'floral', 'minty', 'pungent']
+LABELS = ['sweet', 'floral', 'mint', 'pungent']
 N_EXAMPLES = 2
 TOP_N_ATOMS = 2
 IMG_SIZE = (300, 300)
@@ -44,10 +44,10 @@ def load_or_train_model():
     if os.path.exists(pkl_path):
         model = joblib.load(pkl_path)
         return model
-    # Otherwise, train a new model on goodscents data
-    train_df = pd.read_csv("data/goodscents_train.csv")
+    # Otherwise, train a new model on pyrfume data
+    train_df = pd.read_csv("data/pyrfume_train_4odors.csv")
     X = []
-    for smi in train_df['IsomericSMILES']:
+    for smi in train_df['SMILES']:
         _, arr, _ = smiles_to_fp_and_bitinfo(smi)
         X.append(arr[0])
     X = np.array(X)
@@ -74,7 +74,7 @@ def draw_gaussian_halo(ax, x, y, color, magnitude, radius=40, alpha_max=0.5):
     ax.imshow(rgba, extent=(x-radius, x+radius, y-radius, y+radius), origin='lower')
 
 # --- DRAW MOLECULE WITH SHAP HALOS ---
-def draw_molecule_with_shap_halos(mol, atom_scores, smiles, pred_label_str, ax=None, img_size=(300, 300), top_n=2):
+def draw_molecule_with_shap_halos_full(mol, atom_scores_by_label, smiles, true_labels, pred_labels, ax=None, img_size=(300, 300)):
     drawer = rdMolDraw2D.MolDraw2DCairo(img_size[0], img_size[1])
     options = drawer.drawOptions()
     options.useBWAtomPalette()
@@ -89,17 +89,17 @@ def draw_molecule_with_shap_halos(mol, atom_scores, smiles, pred_label_str, ax=N
     ax.set_xlim(0, img.size[0])
     ax.set_ylim(img.size[1], 0)
     ax.axis('off')
-    if not atom_scores or len(atom_scores) == 0:
-        return
-    top_indices = np.argsort(np.abs(atom_scores))[-top_n:]
-    max_score = max(abs(x) for x in atom_scores) if atom_scores else 1
-    for i in top_indices:
-        x, y = atom_coords[i]
-        score = atom_scores[i]
-        color = 'green'  # SHAP is always positive for absolute importances
+    # For each atom, sum SHAPs across all labels
+    atom_sums = [sum(scores) for scores in atom_scores_by_label]
+    max_score = max(abs(x) for x in atom_sums) if atom_sums else 1
+    for i, score in enumerate(atom_sums):
+        color = 'green' if score >= 0 else 'red'
         magnitude = abs(score) / max_score if max_score > 0 else 0.5
+        x, y = atom_coords[i]
         draw_gaussian_halo(ax, x, y, color, magnitude)
-    ax.set_title(f"Predicted: {pred_label_str}\n{smiles}", fontsize=12)
+    true_str = ','.join([l for l, t in zip(LABELS, true_labels) if t])
+    pred_str = ','.join(pred_labels) if pred_labels else 'None'
+    ax.set_title(f"True: {true_str}\nPred: {pred_str}\n{smiles}", fontsize=12)
 
 # --- MAIN ---
 model = load_or_train_model()
@@ -108,23 +108,20 @@ fig, axes = plt.subplots(1, N_EXAMPLES, figsize=(5*N_EXAMPLES, 5))
 if N_EXAMPLES == 1:
     axes = [axes]
 for i, (idx, row) in enumerate(examples.iterrows()):
-    smiles = row['IsomericSMILES']
+    smiles = row['SMILES']
     mol, arr, bitInfo = smiles_to_fp_and_bitinfo(smiles)
-    # Predict odors
     pred_probs = np.array([est.predict_proba(arr)[0, 1] for est in model.estimators_])
     pred_labels = [LABELS[j] for j, p in enumerate(pred_probs) if p > 0.5]
-    pred_label_str = ', '.join(pred_labels) if pred_labels else 'None'
-    # SHAP values: sum absolute SHAP values across all outputs
-    atom_importance = [0.0] * mol.GetNumAtoms()
+    true_labels = [int(row[l]) for l in LABELS]
+    atom_scores_by_label = [[0.0 for _ in LABELS] for _ in range(mol.GetNumAtoms())]
     for label_idx, est in enumerate(model.estimators_):
         explainer = shap.TreeExplainer(est)
-        shap_vals = explainer.shap_values(arr)[0]  # shape: (n_features,)
-        shap_vals = np.abs(shap_vals)
+        shap_vals = explainer.shap_values(arr)[0]
         for bit_id, atom_tuples in bitInfo.items():
             shap_val = shap_vals[bit_id]
             for atom_idx, _ in atom_tuples:
-                atom_importance[atom_idx] += shap_val
-    draw_molecule_with_shap_halos(mol, atom_importance, smiles, pred_label_str, ax=axes[i], top_n=TOP_N_ATOMS)
-plt.suptitle("Tree Model SHAP: Top 2 Gaussian Halos (Green=Support)", fontsize=16)
+                atom_scores_by_label[atom_idx][label_idx] += shap_val
+    draw_molecule_with_shap_halos_full(mol, atom_scores_by_label, smiles, true_labels, pred_labels, ax=axes[i], img_size=IMG_SIZE)
+plt.suptitle("Tree Model SHAP: Full Mask (Green=Support, Red=Oppose, Sum over Labels)", fontsize=16)
 plt.tight_layout()
 plt.show() 

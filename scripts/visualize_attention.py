@@ -14,10 +14,10 @@ import matplotlib.patches as patches
 
 # --- CONFIG ---
 MODEL_DIR = "chemberta_lora_results/final_model"
-CSV_PATH = "data/bushdid_predict.csv"
+CSV_PATH = "data/pyrfume_test_4odors.csv"
 N_EXAMPLES = 2
 TOP_N_ATOMS = 2
-LABELS = ['sweet', 'floral', 'minty', 'pungent']
+LABELS = ['sweet', 'floral', 'mint', 'pungent']
 
 # --- LOAD MODEL & TOKENIZER ---
 print("Loading tokenizer and model...")
@@ -121,7 +121,6 @@ def draw_gaussian_halo(ax, x, y, color, magnitude, radius=40, alpha_max=0.5):
 
 # --- DRAW MOLECULE WITH GAUSSIAN HALOS (TOP 2 ONLY, BW IMAGE) ---
 def draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=None, img_size=(300, 300), top_n=2):
-    # Draw molecule in black and white
     drawer = rdMolDraw2D.MolDraw2DCairo(img_size[0], img_size[1])
     options = drawer.drawOptions()
     options.useBWAtomPalette()
@@ -129,7 +128,6 @@ def draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=None, img_siz
     drawer.FinishDrawing()
     img_bytes = drawer.GetDrawingText()
     img = Image.open(io.BytesIO(img_bytes))
-    # Get atom pixel coordinates
     atom_coords = [drawer.GetDrawCoords(i) for i in range(mol.GetNumAtoms())]
     if ax is None:
         fig, ax = plt.subplots(figsize=(img_size[0]/100, img_size[1]/100), dpi=100)
@@ -137,7 +135,6 @@ def draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=None, img_siz
     ax.set_xlim(0, img.size[0])
     ax.set_ylim(img.size[1], 0)
     ax.axis('off')
-    # Only plot top_n atoms by |importance|
     if not atom_scores or len(atom_scores) == 0:
         return
     top_indices = np.argsort(np.abs(atom_scores))[-top_n:]
@@ -146,30 +143,28 @@ def draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=None, img_siz
         x, y = atom_coords[i]
         score = atom_scores[i]
         color = 'green' if score >= 0 else 'red'
-        # Normalize magnitude for alpha
         magnitude = abs(score) / max_score if max_score > 0 else 0.5
         draw_gaussian_halo(ax, x, y, color, magnitude)
-    ax.set_title(smiles)
 
 # --- MAIN VISUALIZATION ---
 fig, axes = plt.subplots(1, N_EXAMPLES, figsize=(5*N_EXAMPLES, 5))
 if N_EXAMPLES == 1:
     axes = [axes]
 for i, (idx, row) in enumerate(examples.iterrows()):
-    smiles = row['IsomericSMILES']
+    smiles = row['SMILES']
     print(f"Processing molecule: {smiles}")
     token_importance, inputs = get_token_attention(smiles)
     mol, atom_scores = map_token_importance_to_atoms(smiles, token_importance, inputs)
-    # Predict odors
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits.cpu().numpy()[0]
         probs = 1 / (1 + np.exp(-logits))
         pred_labels = [LABELS[j] for j, p in enumerate(probs) if p > 0.5]
-        pred_label_str = ', '.join(pred_labels) if pred_labels else 'None'
+        pred_label_str = ','.join(pred_labels) if pred_labels else 'None'
+    true_labels = [int(row[l]) for l in LABELS]
+    true_label_str = ','.join([l for l, t in zip(LABELS, true_labels) if t])
     draw_molecule_with_gaussian_halos(mol, atom_scores, smiles, ax=axes[i], top_n=TOP_N_ATOMS)
-    # Add predicted label(s) above the molecule
-    axes[i].set_title(f"Predicted: {pred_label_str}\n{smiles}", fontsize=12)
+    axes[i].set_title(f"True: {true_label_str}\nPred: {pred_label_str}\n{smiles}", fontsize=12)
 plt.suptitle("Attention Visualization: Top 2 Gaussian Halos (Green=Support, Red=Oppose)", fontsize=16)
 plt.tight_layout()
 plt.show()
