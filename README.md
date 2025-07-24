@@ -202,7 +202,7 @@ WARMUP_STEPS = 100
 | **Pungent**  | 0.75      | 0.27   | 0.40  | 0.90    | 0.53   |
 
 
-## XGBoost Results
+### XGBoost Results
 
 | Metric | Score |
 |--------|-------|
