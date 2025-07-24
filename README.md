@@ -124,16 +124,16 @@ Update your script paths accordingly if you add new data or scripts.
 ### Key Features
 - ✅ **Memory Efficient**: LoRA reduces memory usage by ~90%
 - ✅ **Multi-Platform**: CUDA, Apple MPS, CPU compatible
-- ✅ **Class Weights**: Handles imbalanced labels (minty: 8.4x, pungent: 15.4x)
+- ✅ **Class Weights**: Handles imbalanced labels
 - ✅ **Reproducible**: Fixed seeds for consistent results
 - ✅ **Early Stopping**: Prevents overfitting
 - ✅ **Comprehensive Metrics**: ROC-AUC, PR-AUC, F1 scores per class
 
 ### Training Configuration
 ```python
-NUM_EPOCHS = 20
-BATCH_SIZE = 16  
-LEARNING_RATE = 5e-4
+NUM_EPOCHS = 8
+BATCH_SIZE = 8  
+LEARNING_RATE = 1e-3
 LORA_R = 16
 WARMUP_STEPS = 100
 ```
@@ -163,26 +163,58 @@ WARMUP_STEPS = 100
 
 ## 📈 **Results & Performance**
 
-### ChemBERTa LoRA Results (2 epochs test run)
+### ChemBERTa LoRA Results (8 epochs run -> optimized out of 50)
+
 | Metric | Score |
 |--------|-------|
-| **Macro F1** | 0.6068 |
-| **Micro F1** | 0.8060 |
-| **Exact Match** | 0.3934 |
-| **Hamming Loss** | 0.1940 |
+| **Macro F1** | 0.6536 |
+| **Micro F1** | 0.8263 |
+| **Exact Match** | 0.5382 |
+| **Hamming Loss** | 0.1737 |
 
-### Per-Class Performance
+
 | Class | Precision | Recall | F1 | ROC-AUC | PR-AUC |
 |-------|-----------|--------|----|---------| -------|
-| **Sweet** | 0.649 | 0.728 | 0.687 | 0.665 | 0.737 |
-| **Floral** | 0.672 | 0.902 | 0.770 | 0.805 | 0.778 |
-| **Minty** | 0.700 | 0.600 | 0.646 | 0.902 | 0.612 |
-| **Pungent** | 0.375 | 0.286 | 0.324 | 0.870 | 0.391 |
+| **Sweet** | 0.6119 | 0.4059 | 0.4881 | 0.7149 | 0.6155 |
+| **Floral** | 0.7348 | 0.8526 | 0.7893 | 0.7741 | 0.8006 |
+| **Mint** | 0.7143 | 0.5172 | 0.6000 | 0.8717 | 0.6174 |
+| **Pungent** | 0.8750 | 0.6363 | 0.7368 | 0.9710 | 0.7441 |
 
-### Training Efficiency
-- **Training Time**: 2.68 minutes (2 epochs on MacBook Air M2)
-- **Memory Usage**: ~90% less than full fine-tuning
-- **Model Size**: ~3MB LoRA adapters vs ~300MB full model
+### LightGBM Results
+
+| Metric | Score |
+|--------|-------|
+| **Macro F1** | 0.6394 |
+| **Micro F1** | 0.7427 |
+| **Exact Match** | 0.5802 |
+| **Hamming Loss** | 0.1422 |
+
+
+| Class     | Precision | Recall | F1    | ROC-AUC | PR-AUC |
+|-----------|-----------|--------|-------|---------|--------|
+| **Sweet**    | 0.62      | 0.75   | 0.62  | 0.75    | 0.70   |
+| **Floral**   | 0.84      | 0.61   | 0.85  | 0.86    | 0.89   |
+| **Mint**     | 0.85      | 0.85   | 0.69  | 0.86    | 0.73   |
+| **Pungent**  | 0.75      | 0.27   | 0.40  | 0.90    | 0.53   |
+
+
+## XGBoost Results
+
+| Metric | Score |
+|--------|-------|
+| **Macro F1** | 0.6480 |
+| **Micro F1** | 0.7521 |
+| **Exact Match** | 0.5916 |
+| **Hamming Loss** | 0.1384 |
+
+
+| Class     | Precision | Recall | F1    | ROC-AUC | PR-AUC |
+|-----------|-----------|--------|-------|---------|--------|
+| **Sweet**     | 0.62      | 0.60   | 0.61  | 0.74    | 0.71   |
+| **Floral**    | 0.84      | 0.60   | 0.86  | 0.86    | 0.87   |
+| **Mint**     | 0.86      | 0.88   | 0.75  | 0.88    | 0.73   |
+| **Pungent**   | 0.60      | 0.27   | 0.38  | 0.92    | 0.53   |
+
 
 ---
 
@@ -228,10 +260,10 @@ Both approaches properly handle the multi-label nature of odor prediction:
 ```bash
 # Extended training with custom parameters
 python chemberta_odor_finetuning.py \
-    --epochs 50 \
-    --batch_size 32 \
+    --epochs 8 \
+    --batch_size 8 \
     --learning_rate 3e-4 \
-    --lora_r 32 \
+    --lora_r 16 \
     --seed 42
 ```
 
@@ -261,7 +293,6 @@ python chemberta_odor_predict.py \
 ### Multi-Label Metrics
 - **Exact Match** (Subset Accuracy): All labels correct
 - **Hamming Loss**: Average per-label error rate  
-- **Jaccard Score**: Label set overlap
 - **Micro F1**: Treats each label prediction independently
 - **Macro F1**: Average across label classes
 
