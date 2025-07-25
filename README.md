@@ -320,7 +320,8 @@ conda activate scent-env
 ## 📝 **Future Improvements**
 
 ### Model Enhancements
-- [ ] Try graph-based models, or an esamble of models
+- [ ] Fully fine-tune ChemBERTa
+- [ ] Try graph-based models, or an ensemble of models
       
 ### Data Augmentation
 - [ ] Semi-supervised learning with unlabeled molecules
