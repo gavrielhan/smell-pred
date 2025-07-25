@@ -41,7 +41,6 @@ Both approaches handle the multi-label nature of odor prediction, where molecule
 - **Mint**: 229 (10.9%)
 - **Pungent**: 91 (4.3%)
 
-> Note: The label 'mint' is used (not 'minty'), matching the pyrfume-data vocabulary.
 
 ---
 
