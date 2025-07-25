@@ -82,13 +82,17 @@ The repository is organized as follows:
 smell-pred/
 ├── data/                      # All CSV data files (e.g., pyrfume_train_4odors.csv, pyrfume_test_4odors.csv, ...)
 ├── scripts/                   # All Python scripts for training, evaluation, ML baselines, and visualization
-│   ├── chemberta_odor_finetuning.py
+│   ├── chemberta_odor_finetuning.py   # Training script for ChemBERTa LoRA
+│   ├── chemberta_odor_predict.py      # Inference script for ChemBERTa LoRA (standard & ensemble)
 │   ├── ml_odor_classification.py
 │   ├── visualize_attention.py
 │   ├── visualize_shap_tree.py
 │   ├── convert_pyrfume_to_4odors.py
 │   └── chemberta_odor_eval_plots.py
 ├── chemberta_lora_results/    # Output directory for ChemBERTa LoRA fine-tuning results and plots
+│   ├── final_model/           # Saved model and tokenizer
+│   ├── predictions_ensemble.csv   # Example output from ensemble inference
+│   └── ...
 ├── chemberta_lora_logs/       # Output directory for training logs (TensorBoard, etc.)
 ├── ml_odor_results/           # Output directory for ML baseline results and plots
 ├── pyrfume-data/              # (Optional) Additional raw data resources
@@ -103,6 +107,7 @@ smell-pred/
 - **Output directories** (`chemberta_lora_results/`, `ml_odor_results/`) contain all plots and results.
 - **Jupyter notebooks** remain in the project root for easy access.
 - **Raw datasets** are in `pyrfume-data/`.
+- **Ensemble predictions** are saved in `chemberta_lora_results/predictions_ensemble.csv`.
 
 Update your script paths accordingly if you add new data or scripts.
 
@@ -132,6 +137,32 @@ WARMUP_STEPS = 100
 ## 🧪 Ensemble Inference with Synonymous SMILES
 
 We implemented an ensemble inference approach inspired by recent literature, where for each molecule, multiple synonymous SMILES representations are generated using RDKit. The trained ChemBERTa LoRA model predicts on each of these SMILES, and the results are aggregated using a voting procedure. This provides a confidence metric for each prediction and can make the model more robust to SMILES representation variability. In our experiments, this ensemble method sometimes improved certain metrics, but did not substantially outperform the standard LoRA ChemBERTa approach overall.
+
+**Script:**
+- The ensemble inference is implemented in [`scripts/chemberta_odor_predict.py`](scripts/chemberta_odor_predict.py).
+
+**How to run:**
+
+- **Standard (single SMILES) inference:**
+  ```bash
+  python scripts/chemberta_odor_predict.py \
+      --model_path chemberta_lora_results/final_model \
+      --input data/pyrfume_test_4odors.csv \
+      --output chemberta_lora_results/predictions_single.csv
+  ```
+
+- **Ensemble (synonymous SMILES) inference:**
+  ```bash
+  python scripts/chemberta_odor_predict.py \
+      --model_path chemberta_lora_results/final_model \
+      --input data/pyrfume_test_4odors.csv \
+      --output chemberta_lora_results/predictions_ensemble.csv \
+      --ensemble \
+      --n_ensemble 10 \
+      --find_threshold
+  ```
+
+- The output CSV will include predictions, probabilities, confidence scores, and (if ground truth is present) all relevant metrics printed to the console.
 
 ---
 
