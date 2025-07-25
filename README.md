@@ -2,7 +2,7 @@
 
 **Multi-label odor classification using ChemBERTa and traditional ML approaches**
 
-Understanding odour begins with chemistry: smell arises when volatile molecules bind to olfactory receptors based on their 3D structure and functional groups. This structure–activity relationship is central to predicting scent from molecular data. Inspired by the recently published FART (Flavor Analysis and Recognition Transformer) model, which achieved state-of-the-art performance in flavour prediction using a pretraining and fine-tuning strategy on ChemBERTa. I adopt a similar transformer-based approach for odour classification. I compare its performance to LightGBM and XGBoost, two widely used gradient boosting models known for their strong results in cheminformatics tasks.
+Understanding odour begins with chemistry: smell arises when volatile molecules bind to olfactory receptors based on their 3D structure and functional groups. This structure–activity relationship is central to predicting scent from molecular data. While state-of-the-art results are currently led by large models like Mol-PECO and Google’s neural odour map, this project draws inspiration from the recently published FART (Flavor Analysis and Recognition Transformer), which achieved strong performance in flavour prediction by fine-tuning ChemBERTa. I adopt a similar transformer-based approach for odour classification, and compare its performance to LightGBM and XGBoost, two widely used gradient boosting models known for their strong results in cheminformatics tasks.
 
 ---
 
