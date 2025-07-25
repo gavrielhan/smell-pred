@@ -129,6 +129,12 @@ WARMUP_STEPS = 100
 
 ---
 
+## 🧪 Ensemble Inference with Synonymous SMILES
+
+We implemented an ensemble inference approach inspired by recent literature, where for each molecule, multiple synonymous SMILES representations are generated using RDKit. The trained ChemBERTa LoRA model predicts on each of these SMILES, and the results are aggregated using a voting procedure. This provides a confidence metric for each prediction and can make the model more robust to SMILES representation variability. In our experiments, this ensemble method sometimes improved certain metrics, but did not substantially outperform the standard LoRA ChemBERTa approach overall.
+
+---
+
 ## **Traditional ML Approach**
 
 ### Feature Engineering
