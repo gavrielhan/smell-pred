@@ -152,6 +152,15 @@ WARMUP_STEPS = 100
 
 ## 📈 **Results & Performance** (the 🏆 indicates the best score out of the 3 models)
 
+🏆 **Model Leaderboard**
+
+| 🥇 Rank | Model           | N  🏆 |
+|--------|------------------|----------|
+| 🥇 1st | XGBoost    | 10     | 
+| 🥈 2nd | LightGBM | 8    |
+| 🥉 3rd | ChemBERTa + LoRA       | 7    | 
+        
+
 ### ChemBERTa LoRA Results (7 🏆)
 
 | Metric | Score |
@@ -203,44 +212,6 @@ WARMUP_STEPS = 100
 | Pungent   | 0.6000      | 0.2727   | 0.3750  | 0.9243   | 0.5252   |
 
 
-<h3>🏆 Model Leaderboard</h3>
-
-<table>
-  <thead>
-    <tr>
-      <th>Rank</th>
-      <th>Model</th>
-      <th>F1 Macro</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>🥇 1st</td>
-      <td><strong>ChemBERTa (FT)</strong></td>
-      <td>0.83</td>
-      <td>Full fine-tuning (this repo)</td>
-    </tr>
-    <tr>
-      <td>🥈 2nd</td>
-      <td>ChemBERTa + LoRA</td>
-      <td>0.80</td>
-      <td>PEFT with fewer params</td>
-    </tr>
-    <tr>
-      <td>🥉 3rd</td>
-      <td>LightGBM</td>
-      <td>0.76</td>
-      <td>On Mordred descriptors</td>
-    </tr>
-    <tr>
-      <td>4th</td>
-      <td>XGBoost</td>
-      <td>0.74</td>
-      <td>Strong tree-based baseline</td>
-    </tr>
-  </tbody>
-</table>
 
 ---
 
