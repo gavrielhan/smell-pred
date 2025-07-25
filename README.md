@@ -187,7 +187,7 @@ WARMUP_STEPS = 100
 | Pungent  | **0.7500**  | 0.2727   | 0.4000  | 0.9008    | 0.5297   |
 
 
-### XGBoost Results (9 🏆)
+### XGBoost Results (10 🏆)
 
 | Metric | Score |
 |--------|-------|
