@@ -174,8 +174,7 @@ We implemented an ensemble inference approach inspired by recent literature, whe
 - **Feature Count**: 2048 + 10 = 2058 features total
 
 ### Models
-- **LightGBM**: Gradient boosting with GPU support
-- **XGBoost**: Gradient boosting with CUDA support  
+- **XGBoost**/**LightGBM**: Gradient boosting with CUDA support  
 - **Multi-Output**: Separate binary classifier for each odor label
 
 ### Key Features
