@@ -19,7 +19,7 @@ Both approaches handle the multi-label nature of odor prediction, where molecule
 
 ## 📊 **Dataset**
 
-- **Source**: Filtered splits from pyrfume-data, containing only molecules with at least one of the four target odor labels: sweet, floral, mint, pungent.
+- **Source**: Filtered splits from pyrfume-data, containing only molecules with at least one of the four target odor labels: sweet, floral, mint, pungent. We obtained the organized files from the GitHub repository of [https://github.com/Q-bio-at-IIS/Mol-PECO](Mol-PECO), and then adapted them for our task.
 - **Files**: 
   - `data/pyrfume_train_4odors.csv`
   - `data/pyrfume_val_4odors.csv`
