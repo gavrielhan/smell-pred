@@ -255,17 +255,10 @@ We implemented an ensemble inference approach inspired by recent literature, whe
 
 Both approaches generate comprehensive plots:
 
-### ChemBERTa Plots
 - **ROC Curves**: Per-class ROC-AUC analysis
 - **Precision-Recall Curves**: PR-AUC for imbalanced classes
 - **Training History**: Loss curves, F1 scores, learning rate schedule
 - **Performance Summary**: Class distribution and metrics comparison
-
-### Traditional ML Plots  
-- **Model Comparison**: F1 scores across LightGBM vs XGBoost
-- **Per-Class Performance**: ROC-AUC and F1 by odor class
-- **Multi-Label Analysis**: Label co-occurrence, correlation matrix
-- **Error Distribution**: Hamming distance and prediction complexity
 
 ### Decision Visualization
 Through the scripts visualize_attention.py and visualize_shap_tree.py, we can visualize the main contributors to the model label predictions.
