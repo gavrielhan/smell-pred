@@ -193,8 +193,8 @@ We implemented an ensemble inference approach inspired by recent literature, whe
 | 🥇 Rank | Model           | N  🏆 |
 |--------|------------------|----------|
 | 🥇 1st | XGBoost    | 10     | 
-| 🥈 2nd | LightGBM | 8    |
-| 🥉 3rd | ChemBERTa + LoRA       | 7    | 
+| 🥈 2nd | LightGBM, ChemBERTa + LoRA  | 7    |
+
         
 
 ### ChemBERTa LoRA Results (7 🏆)
@@ -214,7 +214,7 @@ We implemented an ensemble inference approach inspired by recent literature, whe
 | Pungent | **0.8750** 🏆 | **0.6363**  🏆| **0.7368** 🏆 | **0.9710** 🏆 | **0.7441** 🏆 |
 
 
-### LightGBM Results (8 🏆)
+### LightGBM Results (7 🏆)
 
 | Metric | Score |
 |--------|-------|
@@ -228,7 +228,7 @@ We implemented an ensemble inference approach inspired by recent literature, whe
 | Sweet    | 0.6200      | **0.7500** 🏆   | **0.6169** 🏆  | **0.7481** 🏆    | 0.6948   |
 | Floral   | **0.8418** 🏆      | 0.6139   | 0.8471  | **0.8634** 🏆    | **0.8886** 🏆   |
 | Mint     | 0.8500      | **0.8526** 🏆   | 0.6939  | 0.8637    | 0.7281   |
-| Pungent  | **0.7500**  | 0.2727   | 0.4000  | 0.9008    | 0.5297   |
+| Pungent  | 0.7500  | 0.2727   | 0.4000  | 0.9008    | 0.5297   |
 
 
 ### XGBoost Results (10 🏆)
